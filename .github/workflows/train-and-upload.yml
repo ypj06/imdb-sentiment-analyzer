@@ -33,7 +33,7 @@ jobs:
           from huggingface_hub import HfApi
 
           token = os.environ["HF_TOKEN"]
-          repo_id = "YOUR_HUGGINGFACE_USERNAME/imdb-sentiment-analyzer"
+          repo_id = "yuanpengjie/imdb-sentiment-analyzer"
           
           api = HfApi()
           api.create_repo(repo_id, token=token, exist_ok=True)
