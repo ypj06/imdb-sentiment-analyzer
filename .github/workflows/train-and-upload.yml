@@ -1,4 +1,4 @@
-name: Train IMDB Sentiment Model & Upload to HF
+name: Train and Upload to Hugging Face
 
 on:
   push:
@@ -6,14 +6,15 @@ on:
   workflow_dispatch:
 
 jobs:
-  train-and-deploy:
+  train-and-upload:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -34,8 +35,8 @@ jobs:
 
           token = os.environ["HF_TOKEN"]
           repo_id = "yuanpengjie/imdb-sentiment-analyzer"
-          
           api = HfApi()
+
           api.create_repo(repo_id, token=token, exist_ok=True)
 
           files = [
@@ -43,18 +44,20 @@ jobs:
               "tfidf_vectorizer.joblib",
               "train.py",
               "requirements.txt",
-              "imdb_balanced_10k.csv",
+              "imdb_top_500.csv",
               "README.md"
           ]
 
-          for f in files:
-              api.upload_file(
-                  path_or_fileobj=f,
-                  path_in_repo=f,
-                  repo_id=repo_id,
-                  token=token
-              )
-              print(f"✅ Uploaded: {f}")
+          for filename in files:
+              if os.path.exists(filename):
+                  api.upload_file(
+                      path_or_fileobj=filename,
+                      path_in_repo=filename,
+                      repo_id=repo_id,
+                      token=token,
+                  )
+                  print(f"Uploaded: {filename}")
 
-          print(f"\n🎉 部署完成：https://huggingface.co/{repo_id}")
+          print("✅ 全部上传完成！")
+          print(f"访问地址: https://huggingface.co/{repo_id}")
           EOF
