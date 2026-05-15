@@ -1,0 +1,60 @@
+name: Train IMDB Sentiment Model & Upload to HF
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  train-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Train model
+        run: python train.py
+
+      - name: Upload to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+
+          token = os.environ["HF_TOKEN"]
+          repo_id = "YOUR_HUGGINGFACE_USERNAME/imdb-sentiment-analyzer"
+          
+          api = HfApi()
+          api.create_repo(repo_id, token=token, exist_ok=True)
+
+          files = [
+              "model.joblib",
+              "tfidf_vectorizer.joblib",
+              "train.py",
+              "requirements.txt",
+              "imdb_balanced_10k.csv",
+              "README.md"
+          ]
+
+          for f in files:
+              api.upload_file(
+                  path_or_fileobj=f,
+                  path_in_repo=f,
+                  repo_id=repo_id,
+                  token=token
+              )
+              print(f"✅ Uploaded: {f}")
+
+          print(f"\n🎉 部署完成：https://huggingface.co/{repo_id}")
+          EOF
