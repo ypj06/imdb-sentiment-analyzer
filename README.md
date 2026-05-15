@@ -1,3 +1,4 @@
+# imdb-sentiment-analyzer
 # IMDB Sentiment Analyzer
 Simple Neural Network + TF-IDF for IMDB Movie Review Sentiment Analysis (Positive/Negative)
 
