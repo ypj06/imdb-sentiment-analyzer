@@ -3,69 +3,48 @@ import numpy as np
 import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.neural_network import MLPClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+from sklearn.pipeline import make_pipeline
 
-# ======================
-# 1. 加载数据
-# ======================
+# 加载数据
 df = pd.read_csv("imdb_top_500.csv")
 texts = df["text"].values
 labels = df["label"].values
 
-# ======================
-# 2. 超强 TF-IDF（精度核心）
-# ======================
-tfidf = TfidfVectorizer(
-    max_features=15000,
-    stop_words="english",
-    ngram_range=(1, 3),       # 1词、2词、3词短语全部捕捉
-    min_df=1,
-    max_df=0.85,
-    sublinear_tf=True         # 抑制高频词，提升特征质量
-)
-X = tfidf.fit_transform(texts).toarray()
-y = labels
-
+# 分层划分：保证正负样本分布在训练/测试集里一致
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
+    texts, labels, test_size=0.2, random_state=42, stratify=labels
 )
 
-# ======================
-# 3. 高精度神经网络
-# ======================
-model = MLPClassifier(
-    hidden_layer_sizes=(256, 128, 64),
-    activation="relu",
-    solver="adam",
-    batch_size=8,
-    learning_rate_init=0.0005,
-    max_iter=150,
-    early_stopping=True,
-    validation_fraction=0.15,
-    n_iter_no_change=15,
-    random_state=42,
-    verbose=True
+# 用更稳的逻辑回归替代大网络，抑制过拟合
+pipeline = make_pipeline(
+    TfidfVectorizer(
+        max_features=8000,
+        stop_words="english",
+        ngram_range=(1, 2),
+        min_df=2,
+        sublinear_tf=True
+    ),
+    LogisticRegression(
+        C=1.0,
+        class_weight="balanced",
+        random_state=42,
+        max_iter=1000
+    )
 )
 
-# ======================
-# 4. 训练
-# ======================
-model.fit(X_train, y_train)
+# 训练
+pipeline.fit(X_train, y_train)
 
-# ======================
-# 5. 输出准确率
-# ======================
-y_pred = model.predict(X_test)
+# 评估
+y_pred = pipeline.predict(X_test)
 acc = accuracy_score(y_test, y_pred)
 
 print("\n" + "="*60)
-print(f"🚀 模型最终测试集准确率: {acc:.4f}")
+print(f"🚀 测试集准确率: {acc:.4f}")
 print("="*60 + "\n")
 
-# ======================
-# 6. 保存模型
-# ======================
-joblib.dump(model, "model.joblib")
-joblib.dump(tfidf, "tfidf_vectorizer.joblib")
-print("✅ 高精度模型保存完成！")
+# 保存模型
+joblib.dump(pipeline, "model.joblib")
+print("✅ 模型保存完成！")
